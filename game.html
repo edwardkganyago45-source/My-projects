@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KINETIC FAILURE - Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <style>
+    :root {
+      --neon-cyan: #00f5ff;
+      --neon-purple: #bf00ff;
+      --neon-yellow: #ffff00;
+      --neon-pink: #ff00aa;
+      --neon-orange: #ff6600;
+      --neon-green: #00ff88;
+      --dark-bg: #0a0a1a;
+      --panel-bg: rgba(13,17,23,0.92);
+      --panel-border: rgba(0,245,255,0.3);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--dark-bg);
+      font-family: 'Rajdhani', sans-serif;
+      color: #e0e0ff;
+      user-select: none;
+    }
+
+    /* ---- Game Canvas ---- */
+    #game-canvas {
+      position: fixed;
+      inset: 0;
+      display: block;
+    }
+
+    /* ---- HUD Layer ---- */
+    #hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* ---- Top Bar ---- */
+    #top-bar {
+      position: absolute;
+      top: 16px; left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .hud-chip {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      backdrop-filter: blur(8px);
+    }
+
+    .hud-chip .label { color: rgba(0,245,255,0.6); font-size: 9px; letter-spacing: 2px; }
+    .hud-chip .value { color: var(--neon-cyan); font-size: 13px; font-weight: 700; }
+
+    /* ---- Left HUD Panel ---- */
+    #hud-left {
+      position: absolute;
+      top: 16px; left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .hud-panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      backdrop-filter: blur(8px);
+      min-width: 180px;
+      box-shadow: 0 0 12px rgba(0,245,255,0.08);
+    }
+
+    .hud-panel-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: rgba(0,245,255,0.5);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .hud-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .hud-row .hl { color: rgba(224,224,255,0.6); }
+    .hud-row .hv { font-family: 'Orbitron', sans-serif; font-size: 12px; color: var(--neon-cyan); }
+    .hud-row .hv.warn { color: var(--neon-orange); }
+    .hud-row .hv.danger { color: var(--neon-pink); }
+
+    /* Velocity graph */
+    #vel-graph-canvas {
+      width: 100%;
+      height: 50px;
+      border-radius: 4px;
+      margin-top: 6px;
+      background: rgba(0,0,0,0.3);
+    }
+
+    /* ---- Right HUD Panel ---- */
+    #hud-right {
+      position: absolute;
+      top: 16px; right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    /* ---- Score Panel ---- */
+    #score-panel {
+      text-align: center;
+    }
+
+    #score-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 10px var(--neon-yellow), 0 0 20px var(--neon-yellow);
+      line-height: 1;
+    }
+
+    #failure-rating {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      color: var(--neon-pink);
+      letter-spacing: 2px;
+      margin-top: 4px;
+    }
+
+    /* ---- Controls Panel ---- */
+    #controls-panel {
+      position: absolute;
+      bottom: 16px; left: 16px;
+      pointer-events: none;
+    }
+
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .key-badge {
+      background: rgba(0,245,255,0.1);
+      border: 1px solid rgba(0,245,255,0.4);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      color: var(--neon-cyan);
+      min-width: 36px;
+      text-align: center;
+    }
+
+    /* ---- Narrator Box ---- */
+    #narrator-box {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--panel-bg);
+      border: 1px solid rgba(191,0,255,0.4);
+      border-radius: 10px;
+      padding: 10px 20px;
+      max-width: 500px;
+      text-align: center;
+      font-size: 14px;
+      color: #e0e0ff;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 15px rgba(191,0,255,0.2);
+      transition: opacity 0.5s;
+      pointer-events: none;
+    }
+
+    #narrator-box .narrator-icon {
+      color: var(--neon-purple);
+      margin-right: 8px;
+    }
+
+    /* ---- Slow-mo indicator ---- */
+    #slowmo-indicator {
+      position: absolute;
+      top: 16px; left: 50%;
+      transform: translateX(-50%) translateY(-60px);
+      background: rgba(191,0,255,0.15);
+      border: 1px solid var(--neon-purple);
+      border-radius: 8px;
+      padding: 6px 20px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      color: var(--neon-purple);
+      letter-spacing: 3px;
+      text-shadow: 0 0 10px var(--neon-purple);
+      box-shadow: 0 0 20px rgba(191,0,255,0.3);
+      transition: transform 0.3s ease;
+      pointer-events: none;
+    }
+
+    #slowmo-indicator.active {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ---- Aim indicator ---- */
+    #aim-hint {
+      position: absolute;
+      bottom: 80px; left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      color: var(--neon-cyan);
+      letter-spacing: 2px;
+      opacity: 0.7;
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+
+    /* ---- Physics Popup Layer ---- */
+    #popup-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+      overflow: hidden;
+    }
+
+    .physics-popup {
+      position: absolute;
+      background: rgba(13,17,23,0.9);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      pointer-events: none;
+      animation: popupFloat 2.5s ease forwards;
+      white-space: nowrap;
+      backdrop-filter: blur(4px);
+    }
+
+    @keyframes popupFloat {
+      0%   { opacity: 0; transform: translateY(0) scale(0.8); }
+      15%  { opacity: 1; transform: translateY(-10px) scale(1); }
+      70%  { opacity: 1; transform: translateY(-40px) scale(1); }
+      100% { opacity: 0; transform: translateY(-70px) scale(0.9); }
+    }
+
+    .popup-fma   { border: 1px solid var(--neon-cyan);   color: var(--neon-cyan);   box-shadow: 0 0 10px rgba(0,245,255,0.3); }
+    .popup-ke    { border: 1px solid var(--neon-yellow);  color: var(--neon-yellow); box-shadow: 0 0 10px rgba(255,255,0,0.3); }
+    .popup-mom   { border: 1px solid var(--neon-purple);  color: var(--neon-purple); box-shadow: 0 0 10px rgba(191,0,255,0.3); }
+    .popup-impact{ border: 1px solid var(--neon-pink);    color: var(--neon-pink);   box-shadow: 0 0 10px rgba(255,0,170,0.3); }
+
+    /* ---- Comic Impact Text ---- */
+    .comic-text {
+      position: absolute;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      pointer-events: none;
+      animation: comicPop 0.8s ease forwards;
+      z-index: 25;
+      text-shadow: 3px 3px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.8);
+    }
+
+    @keyframes comicPop {
+      0%   { opacity: 0; transform: scale(0.3) rotate(-10deg); }
+      30%  { opacity: 1; transform: scale(1.3) rotate(5deg); }
+      60%  { transform: scale(0.95) rotate(-2deg); }
+      80%  { opacity: 1; transform: scale(1.05) rotate(1deg); }
+      100% { opacity: 0; transform: scale(1.1) rotate(0deg) translateY(-20px); }
+    }
+
+    /* ---- Screen shake ---- */
+    #game-canvas.shake {
+      animation: screenShake 0.3s ease;
+    }
+
+    @keyframes screenShake {
+      0%,100% { transform: translate(0,0) rotate(0); }
+      20% { transform: translate(-4px, 3px) rotate(-0.5deg); }
+      40% { transform: translate(4px, -3px) rotate(0.5deg); }
+      60% { transform: translate(-3px, 2px) rotate(-0.3deg); }
+      80% { transform: translate(3px, -2px) rotate(0.3deg); }
+    }
+
+    /* ---- Slow-mo filter ---- */
+    body.slowmo #game-canvas {
+      filter: saturate(1.4) hue-rotate(20deg) brightness(0.95);
+    }
+
+    /* ---- Launch power bar ---- */
+    #power-bar-container {
+      position: absolute;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    #power-bar-container.visible { opacity: 1; }
+
+    #power-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--neon-cyan);
+    }
+
+    #power-bar-track {
+      width: 200px;
+      height: 10px;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(0,245,255,0.3);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    #power-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--neon-green), var(--neon-yellow), var(--neon-orange), var(--neon-pink));
+      border-radius: 5px;
+      transition: width 0.05s;
+      box-shadow: 0 0 8px var(--neon-cyan);
+    }
+
+    /* ---- Replay button ---- */
+    #replay-btn {
+      position: absolute;
+      bottom: 80px; right: 16px;
+      pointer-events: all;
+      display: none;
+    }
+
+    /* ---- Back button ---- */
+    #back-btn {
+      position: absolute;
+      bottom: 16px; right: 16px;
+      pointer-events: all;
+    }
+
+    .game-btn {
+      background: rgba(13,17,23,0.9);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--neon-cyan);
+      cursor: pointer;
+      transition: all 0.2s;
+      backdrop-filter: blur(8px);
+    }
+
+    .game-btn:hover {
+      background: rgba(0,245,255,0.1);
+      box-shadow: 0 0 15px rgba(0,245,255,0.3);
+    }
+
+    /* ---- Scanlines ---- */
+    .scanlines {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 5;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+    }
+
+    /* ---- Combo display ---- */
+    #combo-display {
+      position: absolute;
+      top: 80px; right: 16px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--neon-orange);
+      text-shadow: 0 0 15px var(--neon-orange);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    #combo-display.active { opacity: 1; }
+  </style>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+<div class="scanlines"></div>
+
+<!-- HUD -->
+<div id="hud">
+  <!-- Slow-mo indicator -->
+  <div id="slowmo-indicator">⏸ SLOW MOTION</div>
+
+  <!-- Left physics panel -->
+  <div id="hud-left">
+    <div class="hud-panel">
+      <div class="hud-panel-title">📡 PHYSICS DATA</div>
+      <div class="hud-row"><span class="hl">Velocity</span><span class="hv" id="hud-vel">0.0 m/s</span></div>
+      <div class="hud-row"><span class="hl">KE = ½mv²</span><span class="hv" id="hud-ke">0 J</span></div>
+      <div class="hud-row"><span class="hl">p = mv</span><span class="hv" id="hud-mom">0 kg·m/s</span></div>
+      <div class="hud-row"><span class="hl">G-Force</span><span class="hv" id="hud-gforce">1.0 g</span></div>
+      <div class="hud-row"><span class="hl">Rotation</span><span class="hv" id="hud-rot">0°/s</span></div>
+      <canvas id="vel-graph-canvas" width="180" height="50"></canvas>
+    </div>
+    <div class="hud-panel" id="impact-panel" style="opacity:0;transition:opacity 0.3s;">
+      <div class="hud-panel-title">💥 LAST IMPACT</div>
+      <div class="hud-row"><span class="hl">Force</span><span class="hv danger" id="hud-impact">0 N</span></div>
+      <div class="hud-row"><span class="hl">ΔKE</span><span class="hv warn" id="hud-dke">0 J</span></div>
+    </div>
+  </div>
+
+  <!-- Top bar -->
+  <div id="top-bar">
+    <div class="hud-chip">
+      <span class="label">DIST</span>
+      <span class="value" id="hud-dist">0.0m</span>
+    </div>
+    <div class="hud-chip">
+      <span class="label">TIME</span>
+      <span class="value" id="hud-time">0.0s</span>
+    </div>
+    <div class="hud-chip">
+      <span class="label">FLIPS</span>
+      <span class="value" id="hud-flips">0</span>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div id="hud-right">
+    <div class="hud-panel score-panel" style="text-align:center;">
+      <div class="hud-panel-title">FAILURE SCORE</div>
+      <div id="score-value">0</div>
+      <div id="failure-rating">RATING: F-</div>
+    </div>
+    <div class="hud-panel" style="text-align:center;">
+      <div class="hud-panel-title">COMBO</div>
+      <div id="combo-display" class="active" style="position:relative;top:0;right:0;font-size:18px;opacity:1;">x1</div>
+    </div>
+  </div>
+
+  <!-- Combo floating -->
+  <div id="combo-display" style="display:none;"></div>
+
+  <!-- Controls -->
+  <div id="controls-panel" class="hud-panel">
+    <div class="hud-panel-title">CONTROLS</div>
+    <div class="ctrl-row"><span class="key-badge">SPACE</span><span style="font-size:13px;">Launch</span></div>
+    <div class="ctrl-row"><span class="key-badge">S</span><span style="font-size:13px;">Slow-Mo</span></div>
+    <div class="ctrl-row"><span class="key-badge">R</span><span style="font-size:13px;">Reset</span></div>
+    <div class="ctrl-row"><span class="key-badge">DRAG</span><span style="font-size:13px;">Aim & Power</span></div>
+  </div>
+
+  <!-- Aim hint -->
+  <div id="aim-hint">DRAG TO AIM · RELEASE TO LAUNCH</div>
+
+  <!-- Power bar -->
+  <div id="power-bar-container">
+    <div id="power-label">LAUNCH POWER</div>
+    <div id="power-bar-track"><div id="power-bar-fill"></div></div>
+  </div>
+
+  <!-- Narrator -->
+  <div id="narrator-box">
+    <span class="narrator-icon">🔬</span>
+    <span id="narrator-text">Welcome to the lab, Dr. Crashmore. Try not to break anything... important.</span>
+  </div>
+
+  <!-- IC Summary panel (bottom center, shown before launch) -->
+  <div id="ic-summary" style="
+    position:absolute; bottom:70px; left:50%; transform:translateX(-50%);
+    background:rgba(10,10,26,0.9); border:1px solid rgba(0,245,255,0.25);
+    border-radius:10px; padding:10px 20px; display:flex; gap:18px;
+    font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:1px;
+    backdrop-filter:blur(8px); pointer-events:none; transition:opacity 0.5s;
+  ">
+    <span style="color:rgba(0,245,255,0.5);">INITIAL CONDITIONS</span>
+    <span id="ic-disp-angle"  style="color:#ffff00;"></span>
+    <span id="ic-disp-power"  style="color:#00ff88;"></span>
+    <span id="ic-disp-mass"   style="color:#00f5ff;"></span>
+    <span id="ic-disp-grav"   style="color:#ff6600;"></span>
+    <span id="ic-disp-wind"   style="color:#bf00ff;"></span>
+  </div>
+
+  <!-- Replay button -->
+  <button id="replay-btn" class="game-btn" onclick="startReplay()">⏮ REPLAY</button>
+
+  <!-- Back button -->
+  <button id="back-btn" class="game-btn" onclick="window.location.href='index.html'">← MENU</button>
+</div>
+
+<!-- Popup layer -->
+<div id="popup-layer"></div>
+
+<script src="game.js"></script>
+</body>
+</html>

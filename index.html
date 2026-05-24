@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KINETIC FAILURE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --c: #00f5ff;
+  --p: #bf00ff;
+  --y: #ffff00;
+  --pk: #ff00aa;
+  --o: #ff6600;
+  --g: #00ff88;
+  --bg: #07071a;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg);
+  font-family: 'Rajdhani', sans-serif;
+  color: #fff;
+}
+#particle-bg {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none;
+}
+#scanlines {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px, transparent 3px,
+    rgba(0,0,0,0.13) 3px, rgba(0,0,0,0.13) 4px
+  );
+}
+#app {
+  position: relative; z-index: 2;
+  width: 100vw; height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 460px;
+  overflow: hidden;
+}
+/* ===== LEFT SCENE ===== */
+#scene {
+  position: relative;
+  overflow: hidden;
+  height: 100vh;
+}
+#lab-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+}
+/* Character SVG */
+#character-wrap {
+  position: absolute;
+  bottom: 60px; right: 20px;
+  width: 220px;
+  z-index: 10;
+  pointer-events: none;
+}
+#character-wrap svg { width: 100%; height: auto; }
+/* Title overlay */
+#title-overlay {
+  position: absolute;
+  top: 28px; left: 32px;
+  z-index: 10;
+  pointer-events: none;
+}
+.title-kinetic {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: clamp(2.4rem, 5vw, 4.2rem);
+  color: var(--c);
+  text-shadow: 0 0 18px var(--c), 0 0 40px var(--c), 0 0 80px rgba(0,245,255,0.4);
+  line-height: 1;
+  letter-spacing: 4px;
+  animation: titleFlicker 8s infinite;
+}
+.title-failure {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: clamp(2.4rem, 5vw, 4.2rem);
+  color: var(--y);
+  text-shadow: 0 0 18px var(--y), 0 0 40px var(--y), 0 0 80px rgba(255,255,0,0.4);
+  line-height: 1;
+  letter-spacing: 4px;
+  animation: titleFlicker 8s 0.3s infinite;
+}
+.title-sub {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.72rem;
+  color: var(--p);
+  letter-spacing: 6px;
+  margin-top: 6px;
+  text-shadow: 0 0 10px var(--p);
+}
+.title-divider {
+  height: 2px;
+  width: 340px;
+  background: linear-gradient(90deg, var(--c), var(--p), transparent);
+  margin-top: 8px;
+  box-shadow: 0 0 8px var(--c);
+  border-radius: 2px;
+}
+@keyframes titleFlicker {
+  0%,18%,20%,22%,53%,55%,100% { opacity: 1; }
+  19% { opacity: 0.6; }
+  21% { opacity: 0.85; }
+  23% { opacity: 0.4; }
+  54% { opacity: 0.7; }
+}
+/* XP Bar */
+#xp-bar {
+  position: absolute;
+  top: 28px; right: 16px;
+  z-index: 10;
+  background: rgba(7,7,26,0.82);
+  border: 1px solid var(--c);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 190px;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+.xp-top {
+  display: flex; align-items: center; gap: 7px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.62rem;
+  color: rgba(0,245,255,0.7);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+.xp-level {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--y);
+  text-shadow: 0 0 12px var(--y);
+  margin-left: auto;
+}
+.xp-track {
+  width: 100%; height: 8px;
+  background: rgba(0,245,255,0.12);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(0,245,255,0.25);
+}
+.xp-fill {
+  height: 100%; width: 62.5%;
+  background: linear-gradient(90deg, var(--c), var(--p));
+  border-radius: 4px;
+  box-shadow: 0 0 10px var(--c);
+  animation: xpPulse 2s ease-in-out infinite;
+}
+@keyframes xpPulse {
+  0%,100% { box-shadow: 0 0 8px var(--c); }
+  50% { box-shadow: 0 0 18px var(--c), 0 0 30px var(--p); }
+}
+.xp-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.58rem;
+  color: rgba(255,255,255,0.5);
+  margin-top: 4px;
+  text-align: right;
+  letter-spacing: 1px;
+}
+/* Feature Bar */
+#feature-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 10;
+  background: linear-gradient(to top, rgba(7,7,26,0.97), rgba(7,7,26,0.7));
+  border-top: 2px solid var(--c);
+  display: flex;
+  align-items: stretch;
+  pointer-events: none;
+}
+.feat-item {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 10px 6px;
+  border-right: 1px solid rgba(0,245,255,0.12);
+  gap: 2px;
+}
+.feat-item:last-child { border-right: none; }
+.feat-icon { font-size: 1.3rem; }
+.feat-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.55rem;
+  color: var(--c);
+  letter-spacing: 1.5px;
+  text-align: center;
+}
+.feat-sub {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.45);
+  text-align: center;
+}
+/* Floating equations overlay */
+#eq-overlay {
+  position: fixed; inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+.float-eq {
+  position: absolute;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  color: var(--c);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: floatUp linear forwards;
+}
+@keyframes floatUp {
+  0%   { transform: translateY(0) rotate(var(--rot)); opacity: var(--opa); }
+  100% { transform: translateY(-110vh) rotate(var(--rot)); opacity: 0; }
+}
+/* ===== RIGHT PANEL ===== */
+#right-panel {
+  background: linear-gradient(160deg, #07071a 0%, #0a051e 100%);
+  border-left: 1px solid rgba(0,245,255,0.18);
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c) transparent;
+  position: relative;
+  z-index: 5;
+}
+#right-panel::before {
+  content: '';
+  position: sticky; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--c), var(--p), transparent);
+  box-shadow: 0 0 12px var(--c);
+  display: block;
+  z-index: 20;
+  flex-shrink: 0;
+}
+.rp-section {
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(0,245,255,0.08);
+}
+.rp-section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  color: rgba(0,245,255,0.5);
+  letter-spacing: 3px;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+/* Menu Buttons */
+.menu-btn {
+  display: flex; align-items: center;
+  width: 100%; padding: 13px 16px;
+  margin-bottom: 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  gap: 14px;
+}
+.menu-btn::before {
+  content: '';
+  position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  transition: left 0.4s ease;
+}
+.menu-btn:hover::before { left: 100%; }
+.menu-btn:hover { transform: translateX(5px); }
+.menu-btn-play   { border: 1px solid var(--y); }
+.menu-btn-sandbox{ border: 1px solid var(--c); }
+.menu-btn-notes  { border: 1px solid var(--p); }
+.menu-btn-settings{ border: 1px solid rgba(255,255,255,0.3); }
+.menu-btn-play:hover   { box-shadow: 0 0 20px rgba(255,255,0,0.3); background: rgba(255,255,0,0.06); }
+.menu-btn-sandbox:hover{ box-shadow: 0 0 20px rgba(0,245,255,0.3); background: rgba(0,245,255,0.06); }
+.menu-btn-notes:hover  { box-shadow: 0 0 20px rgba(191,0,255,0.3); background: rgba(191,0,255,0.06); }
+.menu-btn-settings:hover{ box-shadow: 0 0 12px rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); }
+.btn-icon { font-size: 1.6rem; flex-shrink: 0; }
+.btn-text { flex: 1; }
+.btn-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.btn-sub {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.45);
+  margin-top: 1px;
+}
+.btn-arrow {
+  font-size: 1.1rem;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  transform: translateX(-6px);
+}
+.menu-btn:hover .btn-arrow { opacity: 1; transform: translateX(0); }
+.menu-btn-play .btn-title   { color: var(--y); }
+.menu-btn-sandbox .btn-title{ color: var(--c); }
+.menu-btn-notes .btn-title  { color: var(--p); }
+.menu-btn-settings .btn-title{ color: rgba(255,255,255,0.7); }
+/* IC Form */
+.ic-form-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.62rem;
+  color: var(--c);
+  letter-spacing: 2px;
+  margin-bottom: 14px;
+  text-shadow: 0 0 8px var(--c);
+}
+.ic-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+}
+.ic-field { display: flex; flex-direction: column; gap: 4px; }
+.ic-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.5rem;
+  color: rgba(0,245,255,0.6);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.ic-input-wrap { position: relative; display: flex; align-items: center; gap: 6px; }
+.ic-input {
+  width: 100%;
+  background: rgba(0,245,255,0.05);
+  border: 1px solid rgba(0,245,255,0.3);
+  border-radius: 5px;
+  color: var(--c);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.72rem;
+  padding: 6px 8px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.ic-input:focus {
+  border-color: var(--c);
+  box-shadow: 0 0 10px rgba(0,245,255,0.3);
+}
+.ic-input[type="range"] {
+  padding: 4px 0;
+  accent-color: var(--c);
+  cursor: pointer;
+}
+.ic-val {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  color: var(--y);
+  min-width: 36px;
+  text-align: right;
+  text-shadow: 0 0 6px var(--y);
+  flex-shrink: 0;
+}
+.ic-sep {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 8px;
+  margin: 4px 0;
+}
+.ic-sep-line { flex: 1; height: 1px; background: rgba(0,245,255,0.15); }
+.ic-sep-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.55rem;
+  color: rgba(0,245,255,0.4);
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+select.ic-input option { background: #0a051e; color: var(--c); }
+/* Badges */
+.badge-row {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.55rem;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(0,245,255,0.35);
+  color: var(--c);
+  background: rgba(0,245,255,0.07);
+  letter-spacing: 1px;
+}
+/* Meta row */
+.meta-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 22px;
+}
+.version-badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.58rem;
+  color: rgba(255,255,255,0.4);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 1px;
+}
+.online-indicator {
+  display: flex; align-items: center; gap: 7px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.58rem;
+  color: #00ff88;
+  letter-spacing: 2px;
+}
+.online-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 8px #00ff88;
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%,100% { box-shadow: 0 0 6px #00ff88; opacity: 1; }
+  50% { box-shadow: 0 0 16px #00ff88, 0 0 30px #00ff88; opacity: 0.7; }
+}
+/* Modals */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.85);
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-box {
+  background: linear-gradient(160deg, #0a0a2e, #07071a);
+  border: 1px solid var(--c);
+  border-radius: 14px;
+  padding: 32px;
+  max-width: 560px; width: 90%;
+  max-height: 80vh; overflow-y: auto;
+  box-shadow: 0 0 40px rgba(0,245,255,0.2), 0 0 80px rgba(191,0,255,0.1);
+  position: relative;
+}
+.modal-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--c);
+  text-shadow: 0 0 12px var(--c);
+  margin-bottom: 20px;
+  letter-spacing: 3px;
+}
+.modal-close {
+  position: absolute; top: 16px; right: 20px;
+  background: none; border: 1px solid rgba(0,245,255,0.3);
+  color: var(--c); font-size: 1.1rem;
+  width: 32px; height: 32px;
+  border-radius: 6px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.modal-close:hover { background: rgba(0,245,255,0.1); box-shadow: 0 0 10px var(--c); }
+.log-entry {
+  border-left: 2px solid var(--p);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background: rgba(191,0,255,0.05);
+  border-radius: 0 6px 6px 0;
+}
+.log-date {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.58rem;
+  color: var(--p);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+.log-text {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.5;
+}
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.toggle-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.8);
+}
+.toggle {
+  width: 44px; height: 24px;
+  background: rgba(0,245,255,0.15);
+  border: 1px solid var(--c);
+  border-radius: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+}
+.toggle.on { background: rgba(0,245,255,0.35); }
+.toggle::after {
+  content: '';
+  position: absolute; top: 3px; left: 3px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--c);
+  transition: transform 0.2s;
+  box-shadow: 0 0 6px var(--c);
+}
+.toggle.on::after { transform: translateX(20px); }
+/* Character animations */
+#cbody { animation: breathe 3.2s ease-in-out infinite; transform-origin: center bottom; }
+@keyframes breathe {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.ceyes { animation: blink 4.5s infinite; transform-origin: center center; }
+@keyframes blink {
+  0%,88%,100% { transform: scaleY(1); }
+  90% { transform: scaleY(0.08); }
+}
+.chair { animation: hairSway 2.8s ease-in-out infinite; transform-origin: center bottom; }
+@keyframes hairSway {
+  0%,100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+</style>
+</head>
+<body>
+<canvas id="particle-bg"></canvas>
+<div id="scanlines"></div>
+<div id="eq-overlay"></div>
+
+<div id="app">
+  <!-- LEFT SCENE -->
+  <div id="scene">
+    <canvas id="lab-canvas"></canvas>
+
+    <!-- Title -->
+    <div id="title-overlay">
+      <div class="title-kinetic">KINETIC</div>
+      <div class="title-failure">FAILURE</div>
+      <div class="title-sub">+ SCIENCE. MOTION. CHAOS. +</div>
+      <div class="title-divider"></div>
+    </div>
+
+    <!-- XP Bar -->
+    <div id="xp-bar">
+      <div class="xp-top">
+        <span>⚛️</span>
+        <span>EXPERIMENT LEVEL</span>
+        <span class="xp-level">26</span>
+      </div>
+      <div class="xp-track"><div class="xp-fill"></div></div>
+      <div class="xp-label">1250 / 2000 XP</div>
+    </div>
+
+    <!-- Character SVG -->
+    <div id="character-wrap">
+      <svg viewBox="0 0 320 500" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glow-c" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="glow-aura" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="12" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="glow-glasses" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <radialGradient id="floorGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#00f5ff" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#00f5ff" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <!-- Shadow -->
+        <ellipse cx="160" cy="488" rx="90" ry="12" fill="rgba(0,0,0,0.55)"/>
+        <!-- Floor glow -->
+        <ellipse cx="160" cy="480" rx="110" ry="22" fill="url(#floorGlow)"/>
+        <!-- Neon aura -->
+        <ellipse cx="160" cy="310" rx="130" ry="180" fill="rgba(0,245,255,0.04)" stroke="#00f5ff" stroke-width="1.5" filter="url(#glow-aura)"/>
+
+        <!-- LEGS -->
+        <!-- Left leg (viewer's right) -->
+        <path d="M130,390 Q110,420 90,450 Q80,465 75,480" stroke="#1a1a3e" stroke-width="28" stroke-linecap="round" fill="none"/>
+        <path d="M130,390 Q110,420 90,450 Q80,465 75,480" stroke="#22224a" stroke-width="24" stroke-linecap="round" fill="none"/>
+        <!-- Torn patches left leg -->
+        <path d="M105,430 L98,422 L92,430 L99,438 Z" fill="#0d0d2a" opacity="0.8"/>
+        <path d="M88,455 L82,448 L78,456 L84,462 Z" fill="#0d0d2a" opacity="0.7"/>
+        <!-- Right leg -->
+        <path d="M190,390 Q210,420 230,450 Q240,465 245,480" stroke="#1a1a3e" stroke-width="28" stroke-linecap="round" fill="none"/>
+        <path d="M190,390 Q210,420 230,450 Q240,465 245,480" stroke="#22224a" stroke-width="24" stroke-linecap="round" fill="none"/>
+        <!-- Torn patches right leg -->
+        <path d="M215,432 L222,424 L228,432 L221,440 Z" fill="#0d0d2a" opacity="0.8"/>
+        <!-- Left sneaker -->
+        <ellipse cx="72" cy="482" rx="26" ry="11" fill="#e85500"/>
+        <ellipse cx="72" cy="480" rx="26" ry="10" fill="#ff6600"/>
+        <ellipse cx="58" cy="479" rx="10" ry="9" fill="#f0f0f0"/>
+        <line x1="62" y1="474" x2="68" y2="476" stroke="#ccc" stroke-width="1.2"/>
+        <line x1="62" y1="477" x2="69" y2="479" stroke="#ccc" stroke-width="1.2"/>
+        <!-- Right sneaker -->
+        <ellipse cx="248" cy="482" rx="26" ry="11" fill="#e85500"/>
+        <ellipse cx="248" cy="480" rx="26" ry="10" fill="#ff6600"/>
+        <ellipse cx="262" cy="479" rx="10" ry="9" fill="#f0f0f0"/>
+        <line x1="258" y1="474" x2="252" y2="476" stroke="#ccc" stroke-width="1.2"/>
+        <line x1="258" y1="477" x2="251" y2="479" stroke="#ccc" stroke-width="1.2"/>
+
+        <!-- BODY group with breathing animation -->
+        <g id="cbody">
+          <!-- Lab coat body -->
+          <path d="M100,260 Q90,300 88,360 Q88,390 160,395 Q232,390 232,360 Q230,300 220,260 Q200,250 160,248 Q120,250 100,260Z" fill="#d8d8e8"/>
+          <!-- Shirt visible -->
+          <path d="M140,260 Q160,258 180,260 L178,310 Q160,315 142,310 Z" fill="#e8e8f8"/>
+          <!-- Orange tie -->
+          <path d="M155,262 L165,262 L168,320 L160,328 L152,320 Z" fill="#ff6600"/>
+          <path d="M157,264 L163,264 L165,275 L160,278 L155,275 Z" fill="#ff8833"/>
+          <!-- Lapels -->
+          <path d="M140,260 Q120,270 108,290 L130,280 Z" fill="#c8c8d8"/>
+          <path d="M180,260 Q200,270 212,290 L190,280 Z" fill="#c8c8d8"/>
+          <!-- Buttons -->
+          <circle cx="160" cy="295" r="4" fill="#aaa"/>
+          <circle cx="160" cy="310" r="4" fill="#aaa"/>
+          <circle cx="160" cy="325" r="4" fill="#aaa"/>
+          <!-- Breast pocket -->
+          <rect x="188" y="272" width="22" height="18" rx="2" fill="#c8c8d8" stroke="#aaa" stroke-width="1"/>
+          <!-- Pens in pocket -->
+          <rect x="191" y="265" width="4" height="14" rx="2" fill="#00f5ff"/>
+          <rect x="197" y="265" width="4" height="14" rx="2" fill="#ff00aa"/>
+          <rect x="203" y="265" width="4" height="14" rx="2" fill="#ffff00"/>
+          <!-- Name badge -->
+          <rect x="108" y="290" width="52" height="22" rx="3" fill="#fff" stroke="#00f5ff" stroke-width="1"/>
+          <text x="134" y="299" font-family="Orbitron,sans-serif" font-size="4.5" fill="#07071a" text-anchor="middle" font-weight="700">KINETIC</text>
+          <text x="134" y="308" font-family="Orbitron,sans-serif" font-size="4.5" fill="#07071a" text-anchor="middle" font-weight="700">FAILURE</text>
+          <!-- Soot marks -->
+          <ellipse cx="125" cy="340" rx="18" ry="10" fill="rgba(0,0,0,0.35)"/>
+          <ellipse cx="195" cy="355" rx="14" ry="8" fill="rgba(0,0,0,0.3)"/>
+          <!-- Burn hole on sleeve area -->
+          <ellipse cx="102" cy="310" rx="7" ry="5" fill="rgba(0,0,0,0.6)" stroke="#333" stroke-width="1"/>
+
+          <!-- RIGHT ARM (resting on knee) -->
+          <path d="M220,270 Q240,300 245,340 Q248,360 240,375" stroke="#d8d8e8" stroke-width="22" stroke-linecap="round" fill="none"/>
+          <path d="M220,270 Q240,300 245,340 Q248,360 240,375" stroke="#c8c8d8" stroke-width="18" stroke-linecap="round" fill="none"/>
+          <!-- Right hand -->
+          <ellipse cx="238" cy="378" rx="14" ry="10" fill="#d4a574"/>
+          <path d="M228,374 Q224,368 228,364" stroke="#c49060" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M234,372 Q230,365 234,361" stroke="#c49060" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M240,372 Q238,364 242,361" stroke="#c49060" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M246,374 Q246,366 250,364" stroke="#c49060" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+          <!-- LEFT ARM (raised to head) -->
+          <path d="M100,270 Q75,250 68,220 Q62,195 72,175" stroke="#d8d8e8" stroke-width="22" stroke-linecap="round" fill="none"/>
+          <path d="M100,270 Q75,250 68,220 Q62,195 72,175" stroke="#c8c8d8" stroke-width="18" stroke-linecap="round" fill="none"/>
+          <!-- Bandage wrap on forearm -->
+          <path d="M80,235 Q72,228 68,220" stroke="#f0f0e0" stroke-width="20" stroke-linecap="round" fill="none" opacity="0.9"/>
+          <line x1="76" y1="240" x2="64" y2="218" stroke="#e0d8c0" stroke-width="2" opacity="0.6"/>
+          <line x1="79" y1="236" x2="67" y2="214" stroke="#e0d8c0" stroke-width="2" opacity="0.6"/>
+          <!-- Left hand -->
+          <ellipse cx="74" cy="172" rx="14" ry="10" fill="#d4a574"/>
+          <path d="M64,168 Q60,162 64,158" stroke="#c49060" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M70,166 Q66,159 70,155" stroke="#c49060" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M76,166 Q74,158 78,155" stroke="#c49060" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M82,168 Q82,160 86,158" stroke="#c49060" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+          <!-- NECK -->
+          <rect x="148" y="228" width="24" height="28" rx="6" fill="#d4a574"/>
+
+          <!-- HEAD -->
+          <ellipse cx="160" cy="200" rx="62" ry="68" fill="#d4a574"/>
+          <!-- Ears -->
+          <ellipse cx="98" cy="205" rx="12" ry="16" fill="#d4a574"/>
+          <ellipse cx="222" cy="205" rx="12" ry="16" fill="#d4a574"/>
+          <ellipse cx="98" cy="205" rx="7" ry="10" fill="#c49060"/>
+          <ellipse cx="222" cy="205" rx="7" ry="10" fill="#c49060"/>
+
+          <!-- HAIR base -->
+          <ellipse cx="160" cy="158" rx="60" ry="38" fill="#3d2008" class="chair"/>
+          <!-- Hair spikes -->
+          <g class="chair">
+            <path d="M120,148 Q108,118 115,100 Q122,128 130,140 Z" fill="#3d2008"/>
+            <path d="M138,140 Q132,108 142,88 Q146,118 148,136 Z" fill="#4a2810"/>
+            <path d="M158,136 Q158,102 168,84 Q168,112 166,134 Z" fill="#3d2008"/>
+            <path d="M176,138 Q182,106 196,92 Q188,120 182,140 Z" fill="#4a2810"/>
+            <path d="M194,146 Q206,118 218,108 Q208,132 200,150 Z" fill="#3d2008"/>
+            <path d="M108,162 Q90,148 84,132 Q100,148 112,158 Z" fill="#3d2008"/>
+          </g>
+
+          <!-- GLASSES -->
+          <g filter="url(#glow-glasses)">
+            <circle cx="138" cy="200" r="22" fill="none" stroke="#00f5ff" stroke-width="2.5"/>
+            <circle cx="182" cy="200" r="22" fill="none" stroke="#00f5ff" stroke-width="2.5"/>
+            <!-- Cracked lens -->
+            <line x1="128" y1="190" x2="148" y2="210" stroke="#00f5ff" stroke-width="1" opacity="0.7"/>
+            <line x1="148" y1="190" x2="132" y2="208" stroke="#00f5ff" stroke-width="0.8" opacity="0.5"/>
+            <!-- Bridge -->
+            <line x1="160" y1="200" x2="160" y2="200" stroke="#00f5ff" stroke-width="2.5"/>
+            <path d="M160,200 Q160,196 160,200" stroke="#00f5ff" stroke-width="2.5" fill="none"/>
+            <line x1="116" y1="200" x2="98" y2="205" stroke="#00f5ff" stroke-width="2"/>
+            <line x1="204" y1="200" x2="222" y2="205" stroke="#00f5ff" stroke-width="2"/>
+          </g>
+          <!-- Bridge line between lenses -->
+          <line x1="160" y1="200" x2="160" y2="200"/>
+          <path d="M160,199 Q160,197 160,199" stroke="#00f5ff" stroke-width="2.5" fill="none"/>
+
+          <!-- EYES -->
+          <g class="ceyes">
+            <circle cx="138" cy="200" r="14" fill="white"/>
+            <circle cx="182" cy="200" r="14" fill="white"/>
+            <!-- Pupils offset right (looking sideways) -->
+            <circle cx="143" cy="201" r="7" fill="#1a0a00"/>
+            <circle cx="187" cy="201" r="7" fill="#1a0a00"/>
+            <!-- Shine dots -->
+            <circle cx="146" cy="197" r="2.5" fill="white"/>
+            <circle cx="190" cy="197" r="2.5" fill="white"/>
+            <!-- Tired bags -->
+            <path d="M124,210 Q138,216 152,210" stroke="#b08060" stroke-width="1.5" fill="none" opacity="0.6"/>
+            <path d="M168,210 Q182,216 196,210" stroke="#b08060" stroke-width="1.5" fill="none" opacity="0.6"/>
+          </g>
+
+          <!-- EYEBROWS (asymmetric) -->
+          <path d="M122,182 Q138,176 152,180" stroke="#3d2008" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <!-- Raised eyebrow -->
+          <path d="M166,176 Q182,168 196,174" stroke="#3d2008" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+          <!-- NOSE -->
+          <ellipse cx="160" cy="214" rx="6" ry="4" fill="#c49060"/>
+          <circle cx="156" cy="217" r="2.5" fill="#b08050"/>
+          <circle cx="164" cy="217" r="2.5" fill="#b08050"/>
+
+          <!-- MOUTH (smirk) -->
+          <path d="M144,232 Q155,242 172,236 Q162,244 144,232 Z" fill="#8b4513"/>
+          <path d="M144,232 Q158,228 172,236" stroke="#6b3010" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+
+          <!-- DAMAGE DETAILS -->
+          <!-- Bruise on cheek -->
+          <ellipse cx="118" cy="218" rx="12" ry="8" fill="rgba(120,0,180,0.35)"/>
+          <!-- Bandage on forehead -->
+          <rect x="148" y="168" width="30" height="12" rx="3" fill="#f0e8d0" stroke="#d0c8b0" stroke-width="1"/>
+          <line x1="160" y1="168" x2="160" y2="180" stroke="#d0b090" stroke-width="1.5"/>
+          <line x1="154" y1="174" x2="166" y2="174" stroke="#d0b090" stroke-width="1.5"/>
+          <!-- Star impact mark -->
+          <text x="200" y="178" font-size="14" fill="#ffff00" opacity="0.85" text-anchor="middle">✦</text>
+          <!-- Soot smudge on chin -->
+          <ellipse cx="162" cy="244" rx="10" ry="5" fill="rgba(0,0,0,0.4)"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Feature Bar -->
+    <div id="feature-bar">
+      <div class="feat-item">
+        <span class="feat-icon">🤸</span>
+        <span class="feat-title">RAGDOLL PHYSICS</span>
+        <span class="feat-sub">Real simulation</span>
+      </div>
+      <div class="feat-item">
+        <span class="feat-icon">📊</span>
+        <span class="feat-title">REAL-TIME DATA</span>
+        <span class="feat-sub">Live HUD</span>
+      </div>
+      <div class="feat-item">
+        <span class="feat-icon">💥</span>
+        <span class="feat-title">EPIC FAILS</span>
+        <span class="feat-sub">Cinematic chaos</span>
+      </div>
+      <div class="feat-item">
+        <span class="feat-icon">💡</span>
+        <span class="feat-title">LEARN BY FAILING</span>
+        <span class="feat-sub">Physics education</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="right-panel">
+    <!-- Menu Buttons -->
+    <div class="rp-section">
+      <div class="rp-section-title">▸ MAIN MENU</div>
+      <button class="menu-btn menu-btn-play" onclick="launchGame('play')">
+        <span class="btn-icon">🚀</span>
+        <div class="btn-text">
+          <div class="btn-title">PLAY</div>
+          <div class="btn-sub">Launch experiment with current settings</div>
+        </div>
+        <span class="btn-arrow">▶</span>
+      </button>
+      <button class="menu-btn menu-btn-sandbox" onclick="launchGame('sandbox')">
+        <span class="btn-icon">🧪</span>
+        <div class="btn-text">
+          <div class="btn-title">SANDBOX</div>
+          <div class="btn-sub">Free-form physics playground</div>
+        </div>
+        <span class="btn-arrow">▶</span>
+      </button>
+      <button class="menu-btn menu-btn-notes" onclick="showLabNotes()">
+        <span class="btn-icon">📓</span>
+        <div class="btn-text">
+          <div class="btn-title">LAB NOTES</div>
+          <div class="btn-sub">Dr. Crashmore's research log</div>
+        </div>
+        <span class="btn-arrow">▶</span>
+      </button>
+      <button class="menu-btn menu-btn-settings" onclick="showSettings()">
+        <span class="btn-icon">⚙️</span>
+        <div class="btn-text">
+          <div class="btn-title">SETTINGS</div>
+          <div class="btn-sub">Audio, graphics, controls</div>
+        </div>
+        <span class="btn-arrow">▶</span>
+      </button>
+    </div>
+    <!-- IC Form -->
+    <div class="rp-section">
+      <div class="ic-form-title">⚗️ EXPERIMENT INITIAL CONDITIONS</div>
+      <div class="ic-grid">
+        <!-- Row 1 -->
+        <div class="ic-field">
+          <label class="ic-label">LAUNCH ANGLE °</label>
+          <div class="ic-input-wrap">
+            <input class="ic-input" type="range" id="ic-angle" min="0" max="90" value="45" oninput="document.getElementById('v-angle').textContent=this.value">
+            <span class="ic-val" id="v-angle">45</span>
+          </div>
+        </div>
+        <div class="ic-field">
+          <label class="ic-label">LAUNCH POWER %</label>
+          <div class="ic-input-wrap">
+            <input class="ic-input" type="range" id="ic-power" min="10" max="100" value="70" oninput="document.getElementById('v-power').textContent=this.value">
+            <span class="ic-val" id="v-power">70</span>
+          </div>
+        </div>
+        <!-- Row 2 -->
+        <div class="ic-field">
+          <label class="ic-label">MASS kg</label>
+          <div class="ic-input-wrap">
+            <input class="ic-input" type="number" id="ic-mass" value="70" min="1" max="500" step="1">
+          </div>
+        </div>
+        <div class="ic-field">
+          <label class="ic-label">GRAVITY m/s²</label>
+          <div class="ic-input-wrap">
+            <input class="ic-input" type="number" id="ic-gravity" value="9.81" min="0" max="50" step="0.01">
+          </div>
+        </div>
+        <!-- Separator -->
+        <div class="ic-sep">
+          <div class="ic-sep-line"></div>
+          <span class="ic-sep-label">▸ ENVIRONMENT</span>
+          <div class="ic-sep-line"></div>
+        </div>
+        <!-- Row 3 -->
+        <div class="ic-field">
+          <label class="ic-label">GROUND FRICTION</label>
+          <div class="ic-input-wrap">
+            <input class="ic-input" type="range" id="ic-friction" min="0" max="100" value="60" oninput="document.getElementById('v-friction').textContent=this.value">
+            <span class="ic-val" id="v-friction">60</span>
+          </div>
+        </div>
+        <div class="ic-field">
+          <label class="ic-label">BOUNCINESS</label>
+          <div class="ic-input-wrap">
+            <input class="ic-input" type="range" id="ic-bounce" min="0" max="100" value="30" oninput="document.getElementById('v-bounce').textContent=this.value">
+            <span class="ic-val" id="v-bounce">30</span>
+          </div>
+        </div>
+        <!-- Row 4 -->
+        <div class="ic-field">
+          <label class="ic-label">WIND FORCE N</label>
+          <div class="ic-input-wrap">
+            <input class="ic-input" type="range" id="ic-wind" min="-50" max="50" value="0" oninput="document.getElementById('v-wind').textContent=this.value">
+            <span class="ic-val" id="v-wind">0</span>
+          </div>
+        </div>
+        <div class="ic-field">
+          <label class="ic-label">LEVEL / SCENE</label>
+          <div class="ic-input-wrap">
+            <select class="ic-input" id="ic-level" onchange="applyLevelPreset(this.value)">
+              <option value="classic">Classic Lab</option>
+              <option value="moon">Moon Base</option>
+              <option value="chaos">Chaos Mode</option>
+              <option value="sandbox">Open Sandbox</option>
+            </select>
+          </div>
+        </div>
+        <!-- Separator -->
+        <div class="ic-sep">
+          <div class="ic-sep-line"></div>
+          <span class="ic-sep-label">▸ INITIAL VELOCITY</span>
+          <div class="ic-sep-line"></div>
+        </div>
+        <!-- Row 5 -->
+        <div class="ic-field">
+          <label class="ic-label">VELOCITY X m/s</label>
+          <div class="ic-input-wrap">
+            <input class="ic-input" type="number" id="ic-vx" value="0" step="0.1">
+          </div>
+        </div>
+        <div class="ic-field">
+          <label class="ic-label">VELOCITY Y m/s</label>
+          <div class="ic-input-wrap">
+            <input class="ic-input" type="number" id="ic-vy" value="0" step="0.1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Badges -->
+    <div class="rp-section">
+      <div class="rp-section-title">▸ FEATURES</div>
+      <div class="badge-row">
+        <span class="badge">🤸 RAGDOLL</span>
+        <span class="badge">📊 REAL-TIME</span>
+        <span class="badge">💥 EPIC FAILS</span>
+        <span class="badge">💡 LEARN</span>
+      </div>
+    </div>
+
+    <!-- Meta -->
+    <div class="meta-row">
+      <span class="version-badge">v2026.1</span>
+      <div class="online-indicator">
+        <div class="online-dot"></div>
+        ONLINE
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lab Notes Modal -->
+<div id="modal-notes" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('modal-notes')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-notes')">✕</button>
+    <div class="modal-title">📓 DR. CRASHMORE'S LAB NOTES</div>
+    <div class="log-entry">
+      <div class="log-date">EXPERIMENT LOG — DAY 001</div>
+      <div class="log-text">Launched test subject (myself) at 45° with 70% power. Achieved 12.4 m/s peak velocity. Ceiling was closer than calculated. Note: recalibrate ceiling height sensor. Also: buy more bandages.</div>
+    </div>
+    <div class="log-entry">
+      <div class="log-date">EXPERIMENT LOG — DAY 007</div>
+      <div class="log-text">Attempted Moon Base simulation. Gravity at 1.62 m/s² is deceptively gentle until you realize you've been airborne for 40 seconds. Landed in the beaker rack. Green liquid is NOT mint flavored.</div>
+    </div>
+    <div class="log-entry">
+      <div class="log-date">EXPERIMENT LOG — DAY 014</div>
+      <div class="log-text">Chaos Mode activated by accident. Wind force somehow reached 847 N. The whiteboard equations are now on the ceiling. F=ma has never felt so personal. Glasses cracked on impact with the futuristic machine. Still stylish.</div>
+    </div>
+    <div class="log-entry">
+      <div class="log-date">EXPERIMENT LOG — DAY 021</div>
+      <div class="log-text">Discovered that KE = ½mv² scales quadratically. This is obvious in hindsight. Doubling speed quadruples impact energy. The wall confirms this. Submitted findings to journal. Journal rejected. Wall accepted.</div>
+    </div>
+    <div class="log-entry">
+      <div class="log-date">EXPERIMENT LOG — DAY 042</div>
+      <div class="log-text">Test #42 complete. Max speed still unknown — the sensor explodes before reading it. Ordered replacement sensor (x12). Coffee mug survived all 42 tests. E=mc² mug is clearly the most structurally sound object in the lab.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="modal-settings" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('modal-settings')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
+    <div class="modal-title">⚙️ SETTINGS</div>
+    <div class="toggle-row">
+      <span class="toggle-label">🔊 Sound Effects</span>
+      <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">🎵 Background Music</span>
+      <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">✨ Particle Effects</span>
+      <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">📺 Scanlines Overlay</span>
+      <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">💡 Physics Hints</span>
+      <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">📊 Live Data HUD</span>
+      <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">🎬 Slow-Mo on Impact</span>
+      <div class="toggle" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">🌐 Online Leaderboard</span>
+      <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// UTILITY
+// ============================================================
+const TAU = Math.PI * 2;
+function lerp(a, b, t) { return a + (b - a) * t; }
+function rand(min, max) { return Math.random() * (max - min) + min; }
+function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
+function hsl(h, s, l, a = 1) { return `hsla(${h},${s}%,${l}%,${a})`; }
+
+// ============================================================
+// PARTICLE BACKGROUND CANVAS
+// ============================================================
+const pbg = document.getElementById('particle-bg');
+const pbgCtx = pbg.getContext('2d');
+let pbgW, pbgH;
+
+function resizePBG() {
+  pbgW = pbg.width = window.innerWidth;
+  pbgH = pbg.height = window.innerHeight;
+}
+resizePBG();
+window.addEventListener('resize', resizePBG);
+
+const NEON_COLORS = ['#00f5ff','#bf00ff','#ffff00','#ff00aa','#ff6600','#00ff88'];
+const particles = [];
+for (let i = 0; i < 120; i++) {
+  particles.push({
+    x: rand(0, window.innerWidth),
+    y: rand(0, window.innerHeight),
+    r: rand(1, 3.5),
+    color: NEON_COLORS[randInt(0, 5)],
+    vx: rand(-0.3, 0.3),
+    vy: rand(-0.5, -0.1),
+    alpha: rand(0.1, 0.6),
+    alphaDir: rand(-0.005, 0.005),
+    phase: rand(0, TAU)
+  });
+}
+
+const sparkTrails = [];
+let pbgFrame = 0;
+
+function animatePBG(ts) {
+  pbgCtx.clearRect(0, 0, pbgW, pbgH);
+
+  // Deep radial gradient background
+  const grad = pbgCtx.createRadialGradient(pbgW/2, pbgH/2, 0, pbgW/2, pbgH/2, Math.max(pbgW, pbgH) * 0.75);
+  grad.addColorStop(0, '#0e0e2e');
+  grad.addColorStop(1, '#07071a');
+  pbgCtx.fillStyle = grad;
+  pbgCtx.fillRect(0, 0, pbgW, pbgH);
+
+  // Cyan grid lines
+  pbgCtx.strokeStyle = 'rgba(0,245,255,0.04)';
+  pbgCtx.lineWidth = 1;
+  for (let x = 0; x < pbgW; x += 70) {
+    pbgCtx.beginPath(); pbgCtx.moveTo(x, 0); pbgCtx.lineTo(x, pbgH); pbgCtx.stroke();
+  }
+  for (let y = 0; y < pbgH; y += 70) {
+    pbgCtx.beginPath(); pbgCtx.moveTo(0, y); pbgCtx.lineTo(pbgW, y); pbgCtx.stroke();
+  }
+
+  // Spark trails every 7 frames
+  if (pbgFrame % 7 === 0) {
+    sparkTrails.push({
+      x: rand(0, pbgW), y: rand(0, pbgH),
+      life: 1, color: NEON_COLORS[randInt(0, 5)]
+    });
+  }
+  for (let i = sparkTrails.length - 1; i >= 0; i--) {
+    const s = sparkTrails[i];
+    s.life -= 0.04;
+    if (s.life <= 0) { sparkTrails.splice(i, 1); continue; }
+    pbgCtx.save();
+    pbgCtx.globalAlpha = s.life * 0.3;
+    pbgCtx.strokeStyle = s.color;
+    pbgCtx.lineWidth = 1;
+    for (let j = 0; j < 4; j++) {
+      const angle = (j / 4) * TAU;
+      const len = rand(8, 20) * s.life;
+      pbgCtx.beginPath();
+      pbgCtx.moveTo(s.x, s.y);
+      pbgCtx.lineTo(s.x + Math.cos(angle) * len, s.y + Math.sin(angle) * len);
+      pbgCtx.stroke();
+    }
+    pbgCtx.restore();
+  }
+
+  // Particles
+  for (const p of particles) {
+    p.x += p.vx; p.y += p.vy;
+    p.alpha += p.alphaDir;
+    if (p.alpha > 0.6 || p.alpha < 0.05) p.alphaDir *= -1;
+    if (p.y < -10) { p.y = pbgH + 10; p.x = rand(0, pbgW); }
+    if (p.x < -10) p.x = pbgW + 10;
+    if (p.x > pbgW + 10) p.x = -10;
+    pbgCtx.save();
+    pbgCtx.globalAlpha = p.alpha;
+    pbgCtx.fillStyle = p.color;
+    pbgCtx.shadowColor = p.color;
+    pbgCtx.shadowBlur = 6;
+    pbgCtx.beginPath();
+    pbgCtx.arc(p.x, p.y, p.r, 0, TAU);
+    pbgCtx.fill();
+    pbgCtx.restore();
+  }
+
+  pbgFrame++;
+  requestAnimationFrame(animatePBG);
+}
+requestAnimationFrame(animatePBG);
+
+// ============================================================
+// LAB CANVAS
+// ============================================================
+const lab = document.getElementById('lab-canvas');
+const lc = lab.getContext('2d');
+let LW, LH;
+
+function resizeLab() {
+  LW = lab.width = lab.offsetWidth;
+  LH = lab.height = lab.offsetHeight;
+}
+resizeLab();
+const labRO = new ResizeObserver(resizeLab);
+labRO.observe(lab);
+
+// Spark sources
+const sparkSources = [
+  { x: 0.72, y: 0.28, timer: 0, interval: 2.1, active: false, life: 0 },
+  { x: 0.55, y: 0.18, timer: 0.7, interval: 2.8, active: false, life: 0 },
+  { x: 0.85, y: 0.35, timer: 1.4, interval: 1.9, active: false, life: 0 }
+];
+
+// Smoke particles
+const smokeParticles = [];
+function spawnSmoke(bx, by) {
+  for (let i = 0; i < 2; i++) {
+    smokeParticles.push({
+      x: bx + rand(-8, 8), y: by,
+      vx: rand(-0.4, 0.4), vy: rand(-0.8, -0.3),
+      r: rand(6, 14), alpha: rand(0.12, 0.22), life: 1
+    });
+  }
+}
+
+// Velocity graph data
+const velGraph = [];
+for (let i = 0; i < 40; i++) velGraph.push(Math.sin(i * 0.4) * 0.5 + 0.5);
+
+// Floating bg equations (drawn on canvas)
+const bgEqs = ['F=ma','E=½mv²','p=mv','v=at','W=Fd','τ=Iα','a=v²/r'];
+const bgEqObjs = bgEqs.map(eq => ({
+  text: eq,
+  x: rand(0.05, 0.95), y: rand(0.1, 1.1),
+  vy: rand(0.00015, 0.0003),
+  alpha: rand(0.04, 0.09),
+  rot: rand(-0.15, 0.15),
+  size: rand(11, 18)
+}));
+
+// Neon tube flicker state
+let flickerTube = -1, flickerTimer = 0;
+
+let labT = 0;
+
+function drawLab(ts) {
+  labT = ts * 0.001;
+  lc.clearRect(0, 0, LW, LH);
+
+  // ---- BACKGROUND ----
+  const bgGrad = lc.createRadialGradient(LW * 0.5, LH * 0.4, 0, LW * 0.5, LH * 0.4, Math.max(LW, LH) * 0.85);
+  bgGrad.addColorStop(0, '#0d0d30');
+  bgGrad.addColorStop(0.6, '#080820');
+  bgGrad.addColorStop(1, '#04040f');
+  lc.fillStyle = bgGrad;
+  lc.fillRect(0, 0, LW, LH);
+
+  // ---- PERSPECTIVE FLOOR ----
+  const floorY = LH * 0.72;
+  const vpX = LW * 0.5, vpY = floorY;
+  lc.save();
+  // Floor base
+  lc.fillStyle = '#0a0a1e';
+  lc.fillRect(0, floorY, LW, LH - floorY);
+  // Cyan grid lines
+  const gridLines = 10;
+  lc.strokeStyle = 'rgba(0,245,255,0.18)';
+  lc.lineWidth = 1;
+  for (let i = 0; i <= gridLines; i++) {
+    const t2 = i / gridLines;
+    const bx = t2 * LW;
+    lc.beginPath(); lc.moveTo(vpX, vpY); lc.lineTo(bx, LH); lc.stroke();
+  }
+  for (let row = 1; row <= 5; row++) {
+    const ry = floorY + (LH - floorY) * (row / 5);
+    const spread = (row / 5);
+    lc.beginPath(); lc.moveTo(vpX - LW * spread * 0.5, ry); lc.lineTo(vpX + LW * spread * 0.5, ry); lc.stroke();
+  }
+  lc.restore();
+
+  // ---- CEILING NEON TUBES ----
+  const tubes = [
+    { x: 0.25, color: '#00f5ff', shadow: '#00f5ff' },
+    { x: 0.52, color: '#bf00ff', shadow: '#bf00ff' },
+    { x: 0.78, color: '#ff00aa', shadow: '#ff00aa' }
+  ];
+  tubes.forEach((tube, idx) => {
+    const tx = LW * tube.x;
+    const pulse = 0.7 + 0.3 * Math.sin(labT * 2.2 + idx * 1.8);
+    let alpha = pulse;
+    if (flickerTube === idx) alpha *= 0.2 + Math.random() * 0.5;
+
+    // Volumetric cone
+    const coneGrad = lc.createLinearGradient(tx, 0, tx, LH * 0.55);
+    coneGrad.addColorStop(0, tube.color.replace(')', `,${alpha * 0.18})`).replace('rgb', 'rgba').replace('#', 'rgba(').replace('rgba(00', 'rgba(0,0').replace('rgba(bf', 'rgba(191,0').replace('rgba(ff', 'rgba(255,0'));
+    // simpler approach:
+    const coneAlpha = alpha * 0.12;
+    lc.save();
+    lc.globalAlpha = coneAlpha;
+    lc.fillStyle = tube.color;
+    lc.beginPath();
+    lc.moveTo(tx - 12, 0);
+    lc.lineTo(tx + 12, 0);
+    lc.lineTo(tx + LW * 0.12, LH * 0.55);
+    lc.lineTo(tx - LW * 0.12, LH * 0.55);
+    lc.closePath();
+    lc.fill();
+    lc.restore();
+
+    // Tube body
+    lc.save();
+    lc.globalAlpha = alpha;
+    lc.shadowColor = tube.color;
+    lc.shadowBlur = 18;
+    lc.strokeStyle = tube.color;
+    lc.lineWidth = 5;
+    lc.beginPath();
+    lc.moveTo(tx - LW * 0.07, 6);
+    lc.lineTo(tx + LW * 0.07, 6);
+    lc.stroke();
+    lc.restore();
+  });
+
+  // Flicker logic
+  flickerTimer -= 0.016;
+  if (flickerTimer <= 0) {
+    flickerTube = randInt(0, 2);
+    flickerTimer = rand(3, 8);
+  }
+
+  // ---- WHITEBOARD ----
+  const wbX = LW * 0.04, wbY = LH * 0.08, wbW = LW * 0.32, wbH = LH * 0.52;
+  lc.save();
+  lc.shadowColor = '#00f5ff';
+  lc.shadowBlur = 16;
+  lc.fillStyle = '#0d1a2e';
+  lc.strokeStyle = '#00f5ff';
+  lc.lineWidth = 2;
+  lc.beginPath();
+  lc.roundRect(wbX, wbY, wbW, wbH, 6);
+  lc.fill();
+  lc.stroke();
+  lc.restore();
+
+  // Whiteboard header
+  lc.save();
+  lc.font = `bold ${Math.max(9, LW * 0.012)}px Orbitron, monospace`;
+  lc.fillStyle = 'rgba(0,245,255,0.6)';
+  lc.fillText("TODAY'S EXPERIMENT:", wbX + 12, wbY + 22);
+  lc.restore();
+
+  // Equations on whiteboard
+  const eqData = [
+    { text: 'F = ma', color: '#00f5ff', y: 0.18 },
+    { text: 'Δp = FΔt', color: '#bf00ff', y: 0.30 },
+    { text: 'KE = ½mv²', color: '#ffff00', y: 0.42 },
+    { text: 'v² = u² + 2as', color: '#00ff88', y: 0.54 }
+  ];
+  eqData.forEach(eq => {
+    lc.save();
+    lc.font = `bold ${Math.max(13, LW * 0.018)}px Orbitron, monospace`;
+    lc.fillStyle = eq.color;
+    lc.shadowColor = eq.color;
+    lc.shadowBlur = 10;
+    lc.fillText(eq.text, wbX + 16, wbY + wbH * eq.y + 20);
+    lc.restore();
+  });
+
+  // Animated force arrow
+  const arrowOff = Math.sin(labT * 1.8) * 10;
+  lc.save();
+  lc.strokeStyle = '#ff6600';
+  lc.fillStyle = '#ff6600';
+  lc.shadowColor = '#ff6600';
+  lc.shadowBlur = 8;
+  lc.lineWidth = 3;
+  const ax = wbX + 20 + arrowOff, ay = wbY + wbH * 0.68;
+  lc.beginPath(); lc.moveTo(ax, ay); lc.lineTo(ax + 60, ay); lc.stroke();
+  lc.beginPath(); lc.moveTo(ax + 60, ay - 7); lc.lineTo(ax + 75, ay); lc.lineTo(ax + 60, ay + 7); lc.fill();
+  lc.font = `${Math.max(9, LW * 0.011)}px Orbitron, monospace`;
+  lc.fillText('F', ax + 78, ay + 4);
+  lc.restore();
+
+  // Sticky notes
+  lc.save();
+  lc.translate(wbX + wbW * 0.55, wbY + wbH * 0.62);
+  lc.rotate(0.12);
+  lc.fillStyle = '#ffee44';
+  lc.shadowColor = '#ffee44'; lc.shadowBlur = 6;
+  lc.fillRect(0, 0, 58, 38);
+  lc.fillStyle = '#333';
+  lc.shadowBlur = 0;
+  lc.font = `bold ${Math.max(9, LW * 0.013)}px Rajdhani, sans-serif`;
+  lc.fillText('OOPS!', 8, 24);
+  lc.restore();
+
+  lc.save();
+  lc.translate(wbX + wbW * 0.3, wbY + wbH * 0.78);
+  lc.rotate(-0.08);
+  lc.fillStyle = '#ff8c00';
+  lc.shadowColor = '#ff8c00'; lc.shadowBlur = 6;
+  lc.fillRect(0, 0, 110, 38);
+  lc.fillStyle = '#fff';
+  lc.shadowBlur = 0;
+  lc.font = `bold ${Math.max(7, LW * 0.009)}px Rajdhani, sans-serif`;
+  lc.fillText('GRAVITY: 9.81 m/s²', 6, 24);
+  lc.restore();
+
+  // ---- LAB BENCH ----
+  const bX = LW * 0.42, bY = LH * 0.52, bW = LW * 0.38, bH = LH * 0.22;
+  lc.save();
+  lc.fillStyle = '#0d1020';
+  lc.strokeStyle = 'rgba(0,245,255,0.5)';
+  lc.lineWidth = 2;
+  lc.shadowColor = '#00f5ff'; lc.shadowBlur = 10;
+  lc.beginPath(); lc.roundRect(bX, bY, bW, bH, 4); lc.fill(); lc.stroke();
+  lc.restore();
+
+  // Beakers
+  const beakerData = [
+    { rx: 0.47, color: '#00f5ff', liq: 'rgba(0,245,255,0.55)' },
+    { rx: 0.56, color: '#00ff88', liq: 'rgba(0,255,136,0.55)' },
+    { rx: 0.65, color: '#bf00ff', liq: 'rgba(191,0,255,0.55)' }
+  ];
+  beakerData.forEach((bk, bi) => {
+    const bkX = LW * bk.rx, bkY = bY + 10, bkW = LW * 0.055, bkH = bH * 0.75;
+    // Beaker glass
+    lc.save();
+    lc.strokeStyle = bk.color;
+    lc.lineWidth = 2;
+    lc.shadowColor = bk.color; lc.shadowBlur = 8;
+    lc.beginPath();
+    lc.moveTo(bkX, bkY);
+    lc.lineTo(bkX - bkW * 0.1, bkY + bkH);
+    lc.lineTo(bkX + bkW + bkW * 0.1, bkY + bkH);
+    lc.lineTo(bkX + bkW, bkY);
+    lc.stroke();
+    // Liquid
+    const liqH = bkH * 0.65;
+    lc.fillStyle = bk.liq;
+    lc.beginPath();
+    lc.moveTo(bkX - bkW * 0.05, bkY + bkH - liqH);
+    lc.lineTo(bkX - bkW * 0.1, bkY + bkH);
+    lc.lineTo(bkX + bkW + bkW * 0.1, bkY + bkH);
+    lc.lineTo(bkX + bkW + bkW * 0.05, bkY + bkH - liqH);
+    lc.closePath();
+    lc.fill();
+    lc.restore();
+
+    // Bubbles
+    for (let b = 0; b < 3; b++) {
+      const bub = Math.sin(labT * 2 + bi * 1.3 + b * 2.1);
+      const bubY = bkY + bkH - liqH * 0.3 - (((labT * 40 + bi * 30 + b * 20) % (liqH * 0.6)));
+      const bubX = bkX + bkW * 0.3 + b * bkW * 0.2;
+      lc.save();
+      lc.globalAlpha = 0.5 + bub * 0.2;
+      lc.strokeStyle = bk.color;
+      lc.lineWidth = 1;
+      lc.beginPath(); lc.arc(bubX, bubY, 3 + b, 0, TAU); lc.stroke();
+      lc.restore();
+    }
+
+    // Smoke wisps
+    if (Math.random() < 0.04) spawnSmoke(bkX + bkW * 0.5, bkY - 5);
+  });
+
+  // Draw smoke
+  for (let i = smokeParticles.length - 1; i >= 0; i--) {
+    const s = smokeParticles[i];
+    s.x += s.vx; s.y += s.vy; s.r += 0.15; s.life -= 0.008;
+    if (s.life <= 0) { smokeParticles.splice(i, 1); continue; }
+    lc.save();
+    lc.globalAlpha = s.alpha * s.life;
+    lc.fillStyle = 'rgba(180,180,220,1)';
+    lc.beginPath(); lc.ellipse(s.x, s.y, s.r, s.r * 0.6, 0, 0, TAU); lc.fill();
+    lc.restore();
+  }
+
+  // ---- FUTURISTIC MACHINE ----
+  const mX = LW * 0.78, mY = LH * 0.18, mW = LW * 0.18, mH = LH * 0.5;
+  lc.save();
+  lc.fillStyle = '#080818';
+  lc.strokeStyle = '#00f5ff';
+  lc.lineWidth = 2;
+  lc.shadowColor = '#00f5ff'; lc.shadowBlur = 14;
+  lc.beginPath(); lc.roundRect(mX, mY, mW, mH, 10); lc.fill(); lc.stroke();
+  lc.restore();
+
+  // Machine screen
+  const scX = mX + mW * 0.1, scY = mY + mH * 0.08, scW = mW * 0.8, scH = mH * 0.22;
+  lc.save();
+  lc.fillStyle = '#001a1a';
+  lc.strokeStyle = '#00f5ff';
+  lc.lineWidth = 1.5;
+  lc.shadowColor = '#00f5ff'; lc.shadowBlur = 8;
+  lc.beginPath(); lc.roundRect(scX, scY, scW, scH, 4); lc.fill(); lc.stroke();
+  lc.font = `bold ${Math.max(10, LW * 0.014)}px Orbitron, monospace`;
+  lc.fillStyle = '#00f5ff';
+  lc.shadowBlur = 10;
+  lc.fillText('12.4 m/s', scX + 6, scY + scH * 0.42);
+  lc.font = `${Math.max(8, LW * 0.01)}px Orbitron, monospace`;
+  lc.fillStyle = '#ffff00';
+  lc.fillText('KE: 5,376 J', scX + 6, scY + scH * 0.78);
+  lc.restore();
+
+  // Machine buttons
+  const btnColors = ['#ff3333','#ffff00','#00ff88'];
+  btnColors.forEach((bc, bi) => {
+    const bx = mX + mW * (0.2 + bi * 0.28), by = mY + mH * 0.38;
+    lc.save();
+    lc.fillStyle = bc;
+    lc.shadowColor = bc; lc.shadowBlur = 12;
+    lc.beginPath(); lc.arc(bx, by, mW * 0.09, 0, TAU); lc.fill();
+    lc.restore();
+  });
+
+  // Rotating dial
+  const dialX = mX + mW * 0.5, dialY = mY + mH * 0.55, dialR = mW * 0.14;
+  lc.save();
+  lc.strokeStyle = '#00f5ff'; lc.lineWidth = 2;
+  lc.shadowColor = '#00f5ff'; lc.shadowBlur = 8;
+  lc.beginPath(); lc.arc(dialX, dialY, dialR, 0, TAU); lc.stroke();
+  lc.strokeStyle = '#ffff00'; lc.lineWidth = 3;
+  lc.beginPath();
+  lc.moveTo(dialX, dialY);
+  lc.lineTo(dialX + Math.cos(labT * 1.5) * dialR * 0.8, dialY + Math.sin(labT * 1.5) * dialR * 0.8);
+  lc.stroke();
+  lc.restore();
+
+  // CAUTION sign
+  const cauX = mX + mW * 0.1, cauY = mY + mH * 0.72, cauW = mW * 0.8, cauH = mH * 0.12;
+  lc.save();
+  lc.strokeStyle = '#ffff00'; lc.lineWidth = 2;
+  lc.shadowColor = '#ffff00'; lc.shadowBlur = 8;
+  lc.strokeRect(cauX, cauY, cauW, cauH);
+  lc.font = `bold ${Math.max(7, LW * 0.009)}px Orbitron, monospace`;
+  lc.fillStyle = '#ffff00';
+  lc.fillText('⚠ CAUTION', cauX + 4, cauY + cauH * 0.65);
+  lc.restore();
+
+  // ---- FLOOR PROPS ----
+  // Clipboard
+  lc.save();
+  lc.translate(LW * 0.38, LH * 0.78);
+  lc.rotate(-0.15);
+  lc.fillStyle = '#c8a060';
+  lc.fillRect(0, 0, 52, 68);
+  lc.fillStyle = '#e8e0d0';
+  lc.fillRect(4, 12, 44, 52);
+  lc.fillStyle = '#888';
+  lc.fillRect(18, -4, 16, 10);
+  lc.font = `bold ${Math.max(5, LW * 0.007)}px Orbitron, monospace`;
+  lc.fillStyle = '#333';
+  lc.fillText('TEST #42', 6, 28);
+  lc.fillText('MAX SPEED:', 6, 40);
+  lc.fillText('???', 6, 52);
+  lc.restore();
+
+  // Coffee mug
+  lc.save();
+  lc.translate(LW * 0.52, LH * 0.76);
+  lc.fillStyle = '#2a2a4a';
+  lc.strokeStyle = '#00f5ff'; lc.lineWidth = 1.5;
+  lc.beginPath(); lc.roundRect(0, 0, 28, 32, 3); lc.fill(); lc.stroke();
+  lc.strokeStyle = '#00f5ff'; lc.lineWidth = 2;
+  lc.beginPath(); lc.arc(30, 16, 10, -0.8, 0.8); lc.stroke();
+  lc.font = `bold ${Math.max(5, LW * 0.006)}px Orbitron, monospace`;
+  lc.fillStyle = '#ffff00';
+  lc.fillText('E=mc²', 2, 20);
+  lc.restore();
+
+  // Spring coil
+  lc.save();
+  lc.strokeStyle = '#00ff88'; lc.lineWidth = 2;
+  lc.shadowColor = '#00ff88'; lc.shadowBlur = 6;
+  lc.beginPath();
+  for (let i = 0; i <= 40; i++) {
+    const sx = LW * 0.6 + i * 2.5;
+    const sy = LH * 0.8 + Math.sin(i * 0.8) * 8;
+    if (i === 0) lc.moveTo(sx, sy); else lc.lineTo(sx, sy);
+  }
+  lc.stroke();
+  lc.restore();
+
+  // Bouncy balls
+  const ballColors = ['#00f5ff','#ff00aa','#ffff00','#00ff88','#ff6600'];
+  ballColors.forEach((bc, bi) => {
+    const bx = LW * (0.44 + bi * 0.06), by = LH * 0.82 + Math.sin(labT * 2 + bi) * 4;
+    lc.save();
+    lc.fillStyle = bc;
+    lc.shadowColor = bc; lc.shadowBlur = 8;
+    lc.beginPath(); lc.arc(bx, by, 7, 0, TAU); lc.fill();
+    lc.restore();
+  });
+
+  // ---- VELOCITY GRAPH ON WALL ----
+  const gX = LW * 0.04, gY = LH * 0.65, gW = LW * 0.32, gH = LH * 0.06;
+  lc.save();
+  lc.fillStyle = 'rgba(0,10,20,0.7)';
+  lc.strokeStyle = 'rgba(0,245,255,0.3)';
+  lc.lineWidth = 1;
+  lc.strokeRect(gX, gY, gW, gH);
+  lc.fillRect(gX, gY, gW, gH);
+  lc.font = `${Math.max(6, LW * 0.008)}px Orbitron, monospace`;
+  lc.fillStyle = 'rgba(0,245,255,0.5)';
+  lc.fillText('v(t)', gX + 4, gY + 10);
+  // Animated graph line
+  lc.strokeStyle = '#00f5ff'; lc.lineWidth = 1.5;
+  lc.shadowColor = '#00f5ff'; lc.shadowBlur = 4;
+  lc.beginPath();
+  for (let i = 0; i < velGraph.length; i++) {
+    const vx2 = gX + (i / velGraph.length) * gW;
+    const vy2 = gY + gH - velGraph[(i + Math.floor(labT * 8)) % velGraph.length] * gH * 0.85;
+    if (i === 0) lc.moveTo(vx2, vy2); else lc.lineTo(vx2, vy2);
+  }
+  lc.stroke();
+  lc.restore();
+
+  // ---- FLOOR REFLECTION ----
+  lc.save();
+  lc.globalAlpha = 0.08;
+  lc.scale(1, -0.25);
+  lc.translate(0, -(floorY * 2 + (LH - floorY) * 0.5) / 0.25);
+  // Reflect bench
+  lc.fillStyle = '#0d1020';
+  lc.fillRect(bX, bY, bW, bH);
+  lc.restore();
+
+  // ---- SPARKS ----
+  sparkSources.forEach((src, si) => {
+    src.timer += 0.016;
+    if (src.timer >= src.interval) {
+      src.timer = 0; src.active = true; src.life = 1;
+    }
+    if (src.active) {
+      src.life -= 0.04;
+      if (src.life <= 0) src.active = false;
+      lc.save();
+      lc.globalAlpha = src.life * 0.9;
+      const sx = LW * src.x, sy = LH * src.y;
+      const sparkCount = 8;
+      for (let k = 0; k < sparkCount; k++) {
+        const angle = (k / sparkCount) * TAU + rand(-0.3, 0.3);
+        const len = rand(10, 35) * src.life;
+        lc.strokeStyle = ['#ffff00','#ff6600','#00f5ff'][si % 3];
+        lc.lineWidth = 1.5;
+        lc.shadowColor = lc.strokeStyle; lc.shadowBlur = 6;
+        lc.beginPath();
+        lc.moveTo(sx, sy);
+        lc.lineTo(sx + Math.cos(angle) * len, sy + Math.sin(angle) * len);
+        lc.stroke();
+      }
+      lc.restore();
+    }
+  });
+
+  // ---- FLOATING BG EQUATIONS ----
+  bgEqObjs.forEach(eq => {
+    eq.y -= eq.vy * LH;
+    if (eq.y < -0.1) { eq.y = 1.1; eq.x = rand(0.05, 0.95); }
+    lc.save();
+    lc.globalAlpha = eq.alpha;
+    lc.translate(LW * eq.x, LH * eq.y);
+    lc.rotate(eq.rot);
+    lc.font = `${eq.size}px Orbitron, monospace`;
+    lc.fillStyle = '#00f5ff';
+    lc.fillText(eq.text, 0, 0);
+    lc.restore();
+  });
+
+  // ---- VIGNETTE ----
+  const vig = lc.createRadialGradient(LW/2, LH/2, LH * 0.3, LW/2, LH/2, Math.max(LW, LH) * 0.75);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+  lc.fillStyle = vig;
+  lc.fillRect(0, 0, LW, LH);
+
+  requestAnimationFrame(drawLab);
+}
+requestAnimationFrame(drawLab);
+
+// ============================================================
+// FLOATING EQUATIONS OVERLAY
+// ============================================================
+const EQ_LIST = ['F=ma','E=½mv²','p=mv','v=at','W=Fd','KE=½mv²','PE=mgh','F=-kx','a=v²/r','τ=Iα','Δp=FΔt','v²=u²+2as'];
+const eqOverlay = document.getElementById('eq-overlay');
+
+function spawnFloatEq() {
+  const el = document.createElement('div');
+  el.className = 'float-eq';
+  const eq = EQ_LIST[randInt(0, EQ_LIST.length - 1)];
+  const x = rand(2, 90);
+  const dur = rand(12, 22);
+  const rot = rand(-8, 8);
+  const opa = rand(0.12, 0.25);
+  el.textContent = eq;
+  el.style.cssText = `left:${x}%;bottom:-2rem;--rot:${rot}deg;--opa:${opa};animation-duration:${dur}s;opacity:${opa};font-size:${rand(0.7,1.1)}rem;color:${NEON_COLORS[randInt(0,5)]};`;
+  eqOverlay.appendChild(el);
+  setTimeout(() => el.remove(), dur * 1000);
+}
+setInterval(spawnFloatEq, 1200);
+spawnFloatEq();
+
+// ============================================================
+// LEVEL PRESETS
+// ============================================================
+function applyLevelPreset(level) {
+  const g = document.getElementById('ic-gravity');
+  const f = document.getElementById('ic-friction');
+  const b = document.getElementById('ic-bounce');
+  const w = document.getElementById('ic-wind');
+  const p = document.getElementById('ic-power');
+  const vf = document.getElementById('v-friction');
+  const vb = document.getElementById('v-bounce');
+  const vw = document.getElementById('v-wind');
+  const vp = document.getElementById('v-power');
+
+  if (level === 'moon') {
+    g.value = 1.62; f.value = 20; b.value = 60; w.value = 0; p.value = 70;
+  } else if (level === 'chaos') {
+    g.value = 15; f.value = 10; b.value = 80; w.value = 25; p.value = 100;
+  } else if (level === 'classic') {
+    g.value = 9.81; f.value = 60; b.value = 30; w.value = 0; p.value = 70;
+  } else {
+    g.value = 9.81; f.value = 40; b.value = 50; w.value = 0; p.value = 80;
+  }
+  if (vf) vf.textContent = f.value;
+  if (vb) vb.textContent = b.value;
+  if (vw) vw.textContent = w.value;
+  if (vp) vp.textContent = p.value;
+}
+
+// ============================================================
+// GAME LAUNCH
+// ============================================================
+function getParams(mode) {
+  const angle   = document.getElementById('ic-angle').value;
+  const power   = document.getElementById('ic-power').value;
+  const mass    = document.getElementById('ic-mass').value;
+  const gravity = document.getElementById('ic-gravity').value;
+  const friction= document.getElementById('ic-friction').value;
+  const bounce  = document.getElementById('ic-bounce').value;
+  const wind    = document.getElementById('ic-wind').value;
+  const level   = document.getElementById('ic-level').value;
+  const vx      = document.getElementById('ic-vx').value;
+  const vy      = document.getElementById('ic-vy').value;
+
+  const params = new URLSearchParams({
+    mode, angle, power, mass, gravity, friction, bounce, wind, level, vx, vy
+  });
+  return params.toString();
+}
+
+function launchGame(mode) {
+  window.location.href = 'game.html?' + getParams(mode);
+}
+
+// ============================================================
+// MODALS
+// ============================================================
+function showLabNotes() {
+  document.getElementById('modal-notes').style.display = 'flex';
+}
+function showSettings() {
+  document.getElementById('modal-settings').style.display = 'flex';
+}
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal('modal-notes');
+    closeModal('modal-settings');
+  }
+});
+</script>
+</body>
+</html>
